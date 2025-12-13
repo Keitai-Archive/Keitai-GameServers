@@ -43,8 +43,6 @@ Module Program
                method = "POST" Then
 
                 HandleLeaderboardRequest(context)
-            Else
-                SendTextResponse(context, "Not Found", 404)
             End If
 
         Catch ex As Exception

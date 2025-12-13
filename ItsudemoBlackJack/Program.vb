@@ -41,8 +41,6 @@ Module Program
                     HandleHiScore(context)
                 Case "/rpg/ac00/fac01r.php"
                     HandleRanking(context)
-                Case Else
-                    SendTextResponse(context, "Not Found", 404)
             End Select
 
         Catch ex As Exception
@@ -54,7 +52,6 @@ Module Program
             End Try
         End Try
     End Sub
-
     Private Sub HandleHiScore(context As HttpListenerContext)
         Dim request = context.Request
         Dim q = HttpUtility.ParseQueryString(request.Url.Query)

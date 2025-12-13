@@ -42,8 +42,6 @@ Module Program
                     HandleMembership(context)
                 Case "/appli/ranksrv"
                     HandleLeaderboard(context)
-                Case Else
-                    SendTextResponse(context, "Not Found", 404)
             End Select
 
         Catch ex As Exception
