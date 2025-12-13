@@ -1,8 +1,8 @@
 Imports System.IO
 Imports System.Net
-Imports System.Runtime.ConstrainedExecution
 Imports System.Text
 Imports System.Web
+Imports System.Text.RegularExpressions
 Imports Npgsql
 
 Module Program
@@ -211,15 +211,23 @@ CREATE INDEX IF NOT EXISTS idx_mobage_best_scores_game_best
                 Console.WriteLine("Body:")
                 Console.WriteLine(body)
 
-                ' Parse x-www-form-urlencoded body
-                If request.ContentType IsNot Nothing AndAlso
-                   request.ContentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase) Then
+                ' ---- DoJa-tolerant parse ----
+                ' 1) remove control chars (except CR/LF/TAB)
+                Dim cleaned As String = Regex.Replace(body, "[\u0000-\u0008\u000B\u000C\u000E-\u001F]", "")
 
-                    Dim bodyParams = HttpUtility.ParseQueryString(body)
-                    For Each key As String In bodyParams.AllKeys
-                        allParams(key) = bodyParams(key)
-                    Next
-                End If
+                ' 2) if body is newline-delimited, normalize to '&'
+                Dim normalized As String = cleaned.Trim() _
+            .Replace(vbCrLf, "&") _
+            .Replace(vbLf, "&") _
+            .Replace(vbCr, "&")
+
+                ' 3) Parse as querystring
+                Dim bodyParams = HttpUtility.ParseQueryString(normalized)
+
+                For Each key As String In bodyParams.AllKeys
+                    If key Is Nothing Then Continue For
+                    allParams(key) = bodyParams(key)
+                Next
             End If
         End If
 
