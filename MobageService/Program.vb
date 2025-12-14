@@ -35,19 +35,45 @@ Module Program
         Try
             Dim request = context.Request
             Dim QueryStrings As Specialized.NameValueCollection = LogRequest(request)
-            Dim path = request.Url.AbsolutePath
-            Select Case path.ToLower
-                Case "/-global/api/authorize"
+            Dim path = request.Url.AbsolutePath.ToLowerInvariant()
+            Select Case True
+                'Mobage Normal Handlers
+                Case path = "/-global/api/authorize"
                     HandleAuthorize(context, QueryStrings)
-                Case "/-global/api/savescore"
+                Case path = "/-global/api/gettime"
+                    HandleGetTime(context, QueryStrings)
+                Case path.Contains("initgame")
+                    HandleInitGame(context, QueryStrings)
+                Case path = "/-global/api/savescore"
                     HandleSaveScore(context, QueryStrings)
-            End Select
+                Case path = "/-global/api/getranking2"
+                    HandleGetRanking2(context, QueryStrings)
+                Case path = "/-global/api/otonagegetscore"
+                    HandleOtonageGetScore(context, QueryStrings)
+                Case path = "/-global/api/otonagesavescore"
+                    HandleOtonageSaveScore(context, QueryStrings)
 
+                'Mobage M7 Pachislot Handlers
+                Case path = "/game00/_api_auth_user2.cgi"
+                    HandleM7Authorize(context, QueryStrings)
+                Case path = "/game00/game.cgi", path = "/game00/game.fcgi"
+                    HandleGameCgi(context, QueryStrings)
+
+                'Mobage Town Links
+                Case path = "/_ele_t"
+                    HandleMobageTown(context, QueryStrings)
+
+                Case Else
+                    context.Response.StatusCode = 404
+                    context.Response.Close()
+            End Select
         Catch ex As Exception
             Console.WriteLine("Request error: " & ex.ToString())
             Return
         End Try
     End Sub
+
+    'Normal Mobage Handlers
     Private Sub HandleAuthorize(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
         Dim raw = QueryStrings(".raw") ' "1"
         Dim gid = QueryStrings(".gid") ' GameID
@@ -57,7 +83,7 @@ Module Program
         Dim sid = QueryStrings(".sid") ' 
 
         ' Determine if version update is needed
-        Dim expectedVer As String = "1000"
+        Dim expectedVer As String = ver
         Dim mustUpdate As Boolean = (String.IsNullOrEmpty(ver) OrElse ver <> expectedVer)
         Dim responseBody As String
         If mustUpdate Then
@@ -69,11 +95,90 @@ Module Program
             Dim tokenD As String = "D_" & If(icc, "")
 
             Dim sb As New Text.StringBuilder()
+            'Seems like the 2nd var here is a Mobage Specific UID that only numbers
             sb.Append("AUTH;1;").Append(tokenC).Append(";").Append(tokenD).Append(";").Append(vbLf)
             responseBody = sb.ToString()
         End If
         Console.WriteLine($"Response: {responseBody}")
         SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleGetTime(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim raw = QueryStrings(".raw") ' "1"
+        Dim gid = QueryStrings(".gid") ' GameID
+        Dim ver = QueryStrings(".ver") ' GameVersion
+        Dim ser = QueryStrings(".ser") ' terminal-id
+        Dim icc = QueryStrings(".icc") ' user-id
+        Dim sid = QueryStrings(".sid") ' 
+
+
+        Dim responseBody = "123456789"
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleInitGame(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim raw = QueryStrings(".raw") ' "1"
+        Dim gid = QueryStrings(".gid") ' GameID
+        Dim ver = QueryStrings(".ver") ' GameVersion
+        Dim ser = QueryStrings(".ser") ' terminal-id
+        Dim icc = QueryStrings(".icc") ' user-id
+        Dim sid = QueryStrings(".sid") ' 
+
+
+        Dim responseBody = "1"
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleGetRanking2(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim c = QueryStrings("c") ' Difficulty Mode
+        Dim m = QueryStrings("m") ' Today/Month/Alltime Mode
+        Dim lf As String = vbLf
+        Dim q As Integer = 0
+        Dim o As Integer = 1
+        Dim rankcount As Integer = 3 '4 Seems to be the max
+
+
+        ' Build Logic to Get Ranks from DB
+        Dim sb As New Text.StringBuilder()
+        sb.Append(q).Append(lf)
+        sb.Append(o).Append(lf)
+        sb.Append(rankcount).Append(lf)
+        For i As Integer = 0 To rankcount
+            sb.Append($"{rankcount};100;test{rankcount};9999;").Append(lf)
+        Next
+        Console.WriteLine($"Response: {sb.ToString()}")
+        SendTextResponse(context, sb.ToString(), 200)
+    End Sub
+    Private Sub HandleOtonageGetScore(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim raw = QueryStrings(".raw") ' "1"
+        Dim gid = QueryStrings(".gid") ' GameID
+        Dim ver = QueryStrings(".ver") ' GameVersion
+        Dim ser = QueryStrings(".ser") ' terminal-id
+        Dim icc = QueryStrings(".icc") ' user-id
+        Dim sid = QueryStrings(".sid") ' 
+
+        ' Need to figure out what the rest of these are for.
+        Dim responseBody = $"OK;1;2;3;4;" & vbLf
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleOtonageSaveScore(context As HttpListenerContext, p As Specialized.NameValueCollection)
+        ' Parse
+        Dim uidStr As String = p(".uid")
+        Dim gidStr As String = p(".gid")
+        Dim scoreStr As String = p("s")
+
+        Dim gameId As Integer
+        Integer.TryParse(gidStr, gameId)
+
+        Dim score As Integer
+        Integer.TryParse(scoreStr, score)
+
+        Dim userId As String = If(String.IsNullOrWhiteSpace(uidStr), "0", uidStr)
+
+        'UpsertBestScore(gameId, userId, terminalId, score)
+        Console.WriteLine($"OtonageSaveScore: gid={gameId.ToString} score={score.ToString} uid={userId.ToString}")
+        Dim body As String = $"ERR;Score's not implemented yet.;" & vbLf
+        SendTextResponse(context, body, 200)
     End Sub
     Private Sub HandleSaveScore(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
         Dim gid = QueryStrings(".gid") ' GameID
@@ -91,6 +196,51 @@ Module Program
         UpsertBestScore(gid, icc, ser, score)
         Dim responseBody = $"OK{vbLf}"
         ' (client does not care about response contents)
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleGetAvatar(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim raw = QueryStrings(".raw") ' "1"
+        Dim gid = QueryStrings(".gid") ' GameID
+        Dim ver = QueryStrings(".ver") ' GameVersion
+        Dim ser = QueryStrings(".ser") ' terminal-id
+        Dim icc = QueryStrings(".icc") ' user-id
+        Dim sid = QueryStrings(".sid") ' 
+
+        Dim responseBody = "OK;OK;OK;OK;OK;"
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleMobageTown(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim responseBody As String = "Mobage Town not implemented yet..."
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+
+    'M7 Mobage handlers
+    Private Sub HandleM7Authorize(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim ua = QueryStrings("ua")
+        Dim raw = QueryStrings("raw") ' "1"
+        Dim gid = QueryStrings("gid") ' GameID
+        Dim ver = QueryStrings("ver") ' GameVersion
+        Dim ser = QueryStrings("ser") ' terminal-id
+        Dim icc = QueryStrings("icc") ' user-id
+        Dim sid = QueryStrings("sid") ' 
+
+        Dim responseBody As String
+        responseBody = "OK" & vbLf & "999" & vbLf
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleGameCgi(context As HttpListenerContext, p As Specialized.NameValueCollection)
+        Dim mUid As String = p("m_uid")
+        Dim aid As String = p("aid")
+        Dim ver As String = p("ver")
+        Dim appVer As String = p("app_ver")
+        Dim nid As String = p("nid")
+
+        Console.WriteLine($"game.cgi: nid={nid} aid={aid} ver={ver} app_ver={appVer} m_uid={mUid}")
+        Dim responseBody = "OK" & vbLf & "999" & vbLf & "999" & vbLf
+
         SendTextResponse(context, responseBody, 200)
     End Sub
 
@@ -164,6 +314,7 @@ CREATE INDEX IF NOT EXISTS idx_mobage_best_scores_game_best
         Dim response = context.Response
         Dim bytes = Text.Encoding.ASCII.GetBytes(If(body, ""))
         response.StatusCode = statusCode
+        response.Headers("X-API-Status") = "OK"
         response.ContentType = "text/plain"
         response.ContentLength64 = bytes.Length
         response.OutputStream.Write(bytes, 0, bytes.Length)
@@ -243,6 +394,4 @@ CREATE INDEX IF NOT EXISTS idx_mobage_best_scores_game_best
 
         Return allParams
     End Function
-
-
 End Module
