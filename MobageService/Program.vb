@@ -19,7 +19,6 @@ Module Program
             listener.Prefixes.Add($"http://*:{PORT}/")
             listener.Start()
             Console.WriteLine($"Server listening on http://127.0.0.1:{PORT}/")
-            Console.WriteLine("Press Ctrl+C to stop.")
 
             While True
                 Dim context = listener.GetContext()
