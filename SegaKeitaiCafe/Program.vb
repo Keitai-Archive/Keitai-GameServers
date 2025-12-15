@@ -539,7 +539,6 @@ Module ScoreServer
     End Using
 End Function
 
-
     'DB Handlers
     Private Sub EnsureTables()
         Using conn As New NpgsqlConnection(CONNECTION_STRING)
