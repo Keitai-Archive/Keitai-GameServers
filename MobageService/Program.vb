@@ -52,6 +52,12 @@ Module Program
                 Case path = "/-global/api/otonagesavescore"
                     HandleOtonageSaveScore(context, QueryStrings)
 
+                'Game Specific Handlers
+                Case path = "/-global/api/g10050600_auth"
+                    HandleG10050600_Auth(context, QueryStrings)
+                Case path = "/-global/api/g10050600_toku"
+                    HandleG10050600_Toku(context, QueryStrings)
+
                 'Mobage M7 Pachislot Handlers
                 Case path = "/game00/_api_auth_user2.cgi"
                     HandleM7Authorize(context, QueryStrings)
@@ -240,6 +246,59 @@ Module Program
         Console.WriteLine($"game.cgi: nid={nid} aid={aid} ver={ver} app_ver={appVer} m_uid={mUid}")
         Dim responseBody = "OK" & vbLf & "999" & vbLf & "999" & vbLf
 
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+
+    'Game Specific Handlers
+    'Shiren MOBA
+    Private Sub HandleG10050600_Auth(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim raw = QueryStrings(".raw") ' "1"
+        Dim gid = QueryStrings(".gid") ' GameID
+        Dim ver = QueryStrings(".ver") ' GameVersion
+        Dim ser = QueryStrings(".ser") ' terminal-id
+        Dim icc = QueryStrings(".icc") ' user-id
+        Dim time = QueryStrings("TIME")
+        Dim inc_toku = QueryStrings("TOKU")
+        Dim inc_danni = QueryStrings("DANNI")
+        Dim inc_dungeon = QueryStrings("DUNGEON")
+
+        ' Shiren Vars
+        Dim Result = 0
+        Dim TOKU = inc_toku
+        Dim DANNI = inc_danni
+        Dim DUNGEON = inc_dungeon
+        Dim TOOL_BOX = 100
+        Dim STORAGE = 500
+        Dim ITEM1 = "0;0;0;0;0;0;0;0;"
+        Dim ITEM2 = "0,0,0;0,0,0;"
+        Dim ITEM3 = "0,0000000000;"
+
+        Dim responseBody = $"{vbNewLine}RESULT={Result}{vbNewLine}" &
+            $"TOKU={TOKU}{vbNewLine}" &
+            $"DANNI={DANNI}{vbNewLine}" &
+            $"DUNGEON={DUNGEON}{vbNewLine}" &
+            $"TOOL_BOX={TOOL_BOX}{vbNewLine}" &
+            $"STORAGE={STORAGE}{vbNewLine}" &
+            $"ITEM1={ITEM1}{vbNewLine}" &
+            $"ITEM2={ITEM2}{vbNewLine}" &
+            $"ITEM3={ITEM3}{vbNewLine}{vbNewLine}"
+        Console.WriteLine($"Response: {responseBody}")
+        SendTextResponse(context, responseBody, 200)
+    End Sub
+    Private Sub HandleG10050600_Toku(context As HttpListenerContext, QueryStrings As Specialized.NameValueCollection)
+        Dim raw = QueryStrings(".raw") ' "1"
+        Dim gid = QueryStrings(".gid") ' GameID
+        Dim ver = QueryStrings(".ver") ' GameVersion
+        Dim ser = QueryStrings(".ser") ' terminal-id
+        Dim icc = QueryStrings(".icc") ' user-id
+        Dim time = QueryStrings("TIME")
+        Dim inc_toku = QueryStrings("TOKU")
+        Dim inc_danni = QueryStrings("DANNI")
+        Dim inc_dungeon = QueryStrings("DUNGEON")
+
+        'Update Toku/Danni/Dungeon in DB if needed (not implemented)
+        Dim responseBody = $"{vbNewLine}RESULT=0{vbNewLine}"
+        Console.WriteLine($"Response: {responseBody}")
         SendTextResponse(context, responseBody, 200)
     End Sub
 
